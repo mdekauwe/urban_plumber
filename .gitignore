@@ -14,3 +14,4 @@ experiments/phase_1/preston/restarts/*
 experiments/phase_1/preston/cable
 experiments/phase_1/preston/ancillary_files/*
 experiments/phase_1/preston/__pycache__
+experiments/phase_1/preston/.DS_Store
