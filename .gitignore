@@ -7,11 +7,11 @@ CABLE_scripts
 experiments/*.nc
 experiments/phase_1/preston/*.nml
 experiments/phase_1/preston/logs/*
-experiments/phase_1/preston/met/*
+experiments/phase_1/preston/met/*.nc
 experiments/phase_1/preston/namelists/*
 experiments/phase_1/preston/outputs/*
 experiments/phase_1/preston/restarts/*
 experiments/phase_1/preston/cable
 experiments/phase_1/preston/ancillary_files/*
-experiments/phase_1/preston/__pycache__
+experiments/phase_1/preston/__pycache__/*
 experiments/phase_1/preston/.DS_Store
