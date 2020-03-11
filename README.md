@@ -1,5 +1,8 @@
 # Urban PLUMBER
 
+## Model
+
+Using CABLE trunk, rev: 7025
 
 ## Project files
 
