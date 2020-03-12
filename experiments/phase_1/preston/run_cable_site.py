@@ -239,7 +239,7 @@ class RunCable(object):
 if __name__ == "__main__":
 
     #------------- Change stuff ------------- #
-    met_dir = "met"
+    met_dir = "met/raw"
     log_dir = "logs"
     output_dir = "outputs"
     restart_dir = "restarts"
