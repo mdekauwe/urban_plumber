@@ -111,7 +111,7 @@ class RunCable(object):
 
         for fname in met_files:
             site = os.path.basename(fname).split(".")[0].split("_")[1]
-            
+
             base_nml_fn = os.path.join(self.grid_dir, "%s" % (self.nml_fname))
 
             if mcmc_tag is None:
@@ -146,7 +146,7 @@ class RunCable(object):
                             "fixedCO2": "%.2f" % (self.co2_conc),
                             "casafile%phen": "'%s'" % (self.phen_fname),
                             "casafile%cnpbiome": "'%s'" % (self.cnpbiome_fname),
-                            "cable_user%FWSOIL_SWITCH": "'Standard'",
+                            "cable_user%FWSOIL_SWITCH": "'standard'",
                             "cable_user%GS_SWITCH": "'medlyn'",
                             "cable_user%GW_MODEL": ".FALSE.",
                             "cable_user%or_evap": ".FALSE.",
