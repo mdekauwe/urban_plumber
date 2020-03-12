@@ -21,14 +21,12 @@ import xarray as xr
 def main(fname, out_fname):
 
     ds = xr.open_dataset(fname)
-    ds.time.encoding['units'] = 'seconds since 1993-01-01 00:00:00'
+    ds.Qair.attrs['units'] = 'kg/kg'
     ds.to_netcdf(out_fname)
 
 
 if __name__ == "__main__":
 
-    fname = "01_preston_metforcing_1993_2004_UTC_v1.nc"
-    out_fname = "01_preston_metforcing_1993_2004_UTC_v1_time.nc"
+    fname = "raw/01_preston_metforcing_1993_2004_UTC_v1.nc"
+    out_fname = "01_preston_metforcing_1993_2004_UTC_v1.nc"
     main(fname, out_fname)
-    shutil.copyfile(out_fname, fname)
-    os.remove(out_fname)
