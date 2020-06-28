@@ -111,7 +111,7 @@ class RunCable(object):
 
         for fname in met_files:
             site = os.path.basename(fname).split(".")[0].split("_")[1]
-            
+
             base_nml_fn = os.path.join(self.grid_dir, "%s" % (self.nml_fname))
 
             if mcmc_tag is None:
