@@ -146,7 +146,7 @@ class RunCable(object):
                             "fixedCO2": "%.2f" % (self.co2_conc),
                             "casafile%phen": "'%s'" % (self.phen_fname),
                             "casafile%cnpbiome": "'%s'" % (self.cnpbiome_fname),
-                            "cable_user%FWSOIL_SWITCH": "'Standard'",
+                            "cable_user%FWSOIL_SWITCH": "'standard'",
                             "cable_user%GS_SWITCH": "'medlyn'",
                             "cable_user%GW_MODEL": ".FALSE.",
                             "cable_user%or_evap": ".FALSE.",
@@ -239,7 +239,7 @@ class RunCable(object):
 if __name__ == "__main__":
 
     #------------- Change stuff ------------- #
-    met_dir = "met"
+    met_dir = "met/raw"
     log_dir = "logs"
     output_dir = "outputs"
     restart_dir = "restarts"
