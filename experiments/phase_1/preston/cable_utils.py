@@ -182,6 +182,49 @@ def ncdump(nc_fid):
 
     return nc_attrs, nc_dims, nc_vars
 
+def set_site_info(met_fname, site):
+
+    new_met_fname = "%s_tmp.nc" % (site)
+
+    shutil.copyfile(met_fname, new_met_fname)
+
+    nc = netCDF4.Dataset(new_met_fname, 'r+')
+    (nc_attrs, nc_dims, nc_vars) = ncdump(nc)
+
+    nc.createDimension('patch', 3)
+
+    patch = nc.createVariable('patch', 'f8', ('patch'))
+    patch.long_name = "patch"
+
+    iveg = nc.createVariable('iveg', 'f8', ('patch', 'y', 'x'))
+    iveg.units = "-"
+    iveg.missing_value = -9999.
+
+    patchfrac = nc.createVariable('patchfrac', 'f8', ('patch', 'y', 'x'))
+    patchfrac.units = "-"
+    patchfrac.missing_value = -9999.
+
+    elevation = nc.createVariable('elevation', 'f8', ('y', 'x',))
+    elevation.units = "m" ;
+    elevation.missing_value = -9999.
+    elevation.long_name = "Site elevation above sea level" ;
+
+    za = nc.createVariable('za', 'f8', ('y', 'x',))
+    za.units = "m"
+    za.missing_value = -9999.
+    za.long_name = "level of lowest atmospheric model layer"
+
+    patch[:] = 3
+    iveg[:] = np.array([2,6,14]).reshape(3, 1, 1) # tree,grass,bare
+    patchfrac[:] = np.array([0.225,0.15,0.625]).reshape(3, 1, 1) # tree,grass,bare
+    za[:] = 40.
+    elevation[0,0] = 93.0
+
+    nc.close()  # close the new file
+
+
+    return new_met_fname
+
 def change_LAI(met_fname, site, fixed=None, lai_dir=None):
 
     new_met_fname = "%s_tmp.nc" % (site)
