@@ -97,7 +97,8 @@ def set_info(sitename):
     info['num_soil_layers']  = 6
 
     # name of post process file
-    info['post_fname'] = '%s/%s' %(info['outpath'],"%s_post_processed.nc" % (info['sitename']))
+    ofn = "CABLE_%s_b1.nc" % (info['sitename'])
+    info['post_fname'] = '%s/%s' %(info['outpath'],ofn)
 
     return info
 
@@ -214,7 +215,7 @@ def set_netcdf_data(data,info):
     # define empty numpy arrays for missing data
     no_data_1D = np.full([ timesteps ], missing_float)
     no_data_2D = np.full([ timesteps, info['num_soil_layers'] ], missing_float)
-
+    zero_1D = np.full([ timesteps ], 0.0)
     # open netcdf files (r = read only, r+ = append existing)
 
     with nc.Dataset(filename=info['post_fname'], mode='r+', format='NETCDF4') as o:
@@ -240,8 +241,12 @@ def set_netcdf_data(data,info):
         o.variables['LWnet'][:]        = data['LWnet'].values       # Net longwave radiation (downward)
         o.variables['Qle'][:]          = data['Qle'].values        # Latent heat flux (upward)
         o.variables['Qh'][:]           = data['Qh'].values        # Sensible heat flux (upward)
-        o.variables['Qanth'][:]        = no_data_1D       # Anthropogenic heat flux (upward)
-        o.variables['Qstor'][:]        = no_data_1D         # Net storage heat flux in all materials (increase)
+        o.variables['Qanth'][:]        = zero_1D       # Anthropogenic heat flux (upward)
+        o.variables['Qstor'][:]        = data['SWnet'].values + \
+                                         data['LWnet'].values + \
+                                         0.0 -\
+                                         data['Qle'].values -\
+                                         data['Qh'].values          # Net storage heat flux in all materials (increase)
         # Additional energy balance components
         o.variables['Qg'][:]           = data['Qg'].values   # Ground heat flux (downward)
         o.variables['Qanth_Qh'][:]     = no_data_1D   # Anthropogenic sensible heat flux (upward)
@@ -326,7 +331,8 @@ def set_more_info(info):
     '''
 
     fpath = '%s/%s' %(info['sitepath'],info['fname_forcing'])
-
+    #print("here")
+    #print(fpath)
     with nc.Dataset(filename=fpath, mode='r', format='NETCDF4') as f:
 
         info['time_coverage_start']       = f.time_coverage_start
@@ -336,6 +342,14 @@ def set_more_info(info):
         info['timestep_interval_seconds'] = f.timestep_interval_seconds
         info['timestep_number_spinup']    = f.timestep_number_spinup
         info['timestep_number_analysis']  = f.timestep_number_analysis
+        #print(f.time_coverage_start)
+        #print(f.time_coverage_end)
+        #print(f.time_analysis_start)
+        #print(f.local_utc_offset_hours)
+        #print(f.timestep_interval_seconds)
+        #print(f.timestep_number_spinup)
+        #print(f.timestep_number_analysis)
+
 
     # loading site parameters
     fpath = '%s/%s_sitedata_v1.csv' %(info['sitepath'], info['sitename'] )
