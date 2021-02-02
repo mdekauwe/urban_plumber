@@ -119,6 +119,7 @@ def get_model_data(info):
     -------
     data (dataframe): model output
     '''
+    hpa_2_pa = 100.
 
     f = nc.Dataset(info['fname_output'])
     time = nc.num2date(f.variables['time'][:],
@@ -178,7 +179,7 @@ def get_model_data(info):
     df['SWdown'] = f.variables['SWdown'][:,0,0]
     df['LWdown'] = f.variables['LWdown'][:,0,0]
     df['Tair'] = f.variables['Tair'][:,0,0]
-    df['Qair'] = f.variables['Qair'][:,0,0]
+    df['Qair'] = f.variables['Qair'][:,0,0] * hpa_2_pa
     df['PSurf'] = f.variables['PSurf'][:,0,0]
     df['Wind'] = f.variables['Wind'][:,0,0]
 
@@ -277,11 +278,11 @@ def set_netcdf_data(data,info):
         o.variables['SAlbedo'][:]      = no_data_1D   # Snow albedo
         o.variables['CAlbedo'][:]      = no_data_1D   # Vegetation canopy albedo
         o.variables['UAlbedo'][:]      = no_data_1D   # Urban canopy albedo
-        o.variables['LAI'][:]          = no_data_1D   # Leaf area index
+        o.variables['LAI'][:]          = data['LAI'].values   # Leaf area index
         o.variables['RoofSurfT'][:]    = no_data_1D   # Roof surface temperature (skin)
         o.variables['WallSurfT'][:]    = no_data_1D   # Wall surface temperature (skin)
         o.variables['RoadSurfT'][:]    = no_data_1D   # Road surface temperature (skin)
-        o.variables['TairSurf'][:]     = no_data_1D   # Near surface air temperature (2m)
+        o.variables['TairSurf'][:]     = no_data_1D    # Near surface air temperature (2m)
         o.variables['TairCanyon'][:]   = no_data_1D   # Air temperature in street canyon (bulk)
         o.variables['TairBuilding'][:] = no_data_1D   # Air temperature in buildings (bulk)
         # Sub-surface state variables **** TWO DIMENSIONAL ****

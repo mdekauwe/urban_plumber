@@ -181,6 +181,7 @@ class RunCable(object):
         local_exe = "cable"
         if os.path.isfile(local_exe):
             os.remove(local_exe)
+        print(self.cable_exe)
         shutil.copy(self.cable_exe, local_exe)
         self.cable_exe = local_exe
 
