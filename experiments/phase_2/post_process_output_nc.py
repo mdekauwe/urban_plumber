@@ -43,7 +43,12 @@ import sys
 missing_float = -9999.
 
 # add sites to list as required
-sitelist = ['AU-Preston']
+sitelist = ['AU-Preston','PL-Lipowa','US-Minneapolis1',\
+            'AU-SurreyHills','JP-Yoyogi','PL-Narutowicza','US-Minneapolis2',\
+            'CA-Sunset','KR-Jungnang','SG-TelokKurau','US-WestPhoenix',\
+            'FI-Kumpula','KR-Ochang','UK-KingsCollege',\
+            'FI-Torni','MX-Escandon','UK-Swindon',\
+            'FR-Capitole','US-Baltimore']
 
 ###############################################################################
 ##### MAIN: no action required
@@ -57,7 +62,6 @@ def main(sitename):
 
     print('building empty netcdf in complying form')
     create_empty_netcdf(info)
-
     data = get_model_data(info)
 
     print('setting netcdf with output data')
@@ -81,13 +85,18 @@ def set_info(sitename):
     info['sitename'] = '%s' %sitename
 
     # path to site data
-    info['sitepath'] = './%s' %sitename
+    info['sitepath'] = 'all_sites'
 
     # path to netcdf output
-    info['outpath']  = './%s/outputs' %sitename
+    info['outpath']  = 'all_sites/outputs'
 
     # name of netcdf forcing file for site
-    info['fname_forcing'] = 'met/%s_metforcing_v1.nc' %sitename
+    if sitename != "AU-Preston":
+        info['fname_forcing'] = 'met/%s_metforcing_v1.nc' %sitename
+    else:
+        info['fname_forcing'] = 'met/%s_metforcing_v3.nc' %sitename
+
+    #info['fname_forcing'] = 'met/%s_metforcing_v1.nc' %sitename
 
     # name of netcdf output file:
     ofn = "%s_out.nc" % (sitename)
@@ -211,10 +220,14 @@ def set_netcdf_data(data,info):
     info (dictionary): script information
     '''
 
-    timesteps = info['timestep_number_spinup'] + info['timestep_number_analysis']
-
+    #timesteps = info['timestep_number_spinup'] + info['timestep_number_analysis']
+    #print(timesteps)
+    timesteps = int(float(info['timestep_number_spinup']) + float(info['timestep_number_analysis']))
+    #print(timesteps)
     # define empty numpy arrays for missing data
+
     no_data_1D = np.full([ timesteps ], missing_float)
+
     no_data_2D = np.full([ timesteps, info['num_soil_layers'] ], missing_float)
     zero_1D = np.full([ timesteps ], 0.0)
     # open netcdf files (r = read only, r+ = append existing)
@@ -333,7 +346,7 @@ def set_more_info(info):
 
     fpath = '%s/%s' %(info['sitepath'],info['fname_forcing'])
     #print("here")
-    #print(fpath)
+
     with nc.Dataset(filename=fpath, mode='r', format='NETCDF4') as f:
 
         info['time_coverage_start']       = f.time_coverage_start
@@ -351,9 +364,14 @@ def set_more_info(info):
         #print(f.timestep_number_spinup)
         #print(f.timestep_number_analysis)
 
-
+    print(sitename)
     # loading site parameters
-    fpath = '%s/%s_sitedata_v1.csv' %(info['sitepath'], info['sitename'] )
+    if sitename != "AU-Preston":
+        fpath = '%s/site_info/%s_sitedata_v1.csv' %(info['sitepath'], info['sitename'] )
+    else:
+        fpath = '%s/site_info/%s_sitedata_v3.csv' %(info['sitepath'], info['sitename'] )
+    print(fpath)
+    #fpath = '%s/%s_sitedata_v1.csv' %(info['sitepath'], info['sitename'] )
     sitedata_full = pd.read_csv(fpath, index_col=1, delimiter=',')
     sitedata      = pd.to_numeric(sitedata_full['value'])
 
@@ -373,7 +391,8 @@ def create_empty_netcdf(info):
 
     '''
 
-    timesteps = info['timestep_number_spinup'] + info['timestep_number_analysis']
+    #timesteps = info['timestep_number_spinup'] + info['timestep_number_analysis']
+    timesteps = int(float(info['timestep_number_spinup']) + float(info['timestep_number_analysis']))
 
     #fpath = '%s/%s' %(info['outpath'],"%s_post_processed.nc" % (info['sitename']))
 
@@ -382,6 +401,7 @@ def create_empty_netcdf(info):
 
         # setting coordinate values
         times         = [t*int(info['timestep_interval_seconds']) for t in range(0,int(timesteps))]
+
         soil_layers   = [i for i in range(1,info['num_soil_layers']+1)]
 
         ############ create dimensions ############
@@ -392,7 +412,7 @@ def create_empty_netcdf(info):
 
         ############ create coordinates ############
         var = 'time'
-        o.createVariable(var, datatype='i4', dimensions=('time'), fill_value = missing_float)
+        o.createVariable(var, datatype='i4', dimensions=('time'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Time'
         o.variables[var].standard_name = 'time'
         o.variables[var].units         = 'seconds since %s' %info['time_coverage_start']
@@ -400,7 +420,7 @@ def create_empty_netcdf(info):
         o.variables[var][:]            = times
 
         var = 'soil_layer'
-        o.createVariable(var, datatype='i4', dimensions=('soil_layer'), fill_value = missing_float)
+        o.createVariable(var, datatype='i4', dimensions=('soil_layer'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Soil layer number'
         o.variables[var][:]            = soil_layers
 
@@ -434,37 +454,37 @@ def create_empty_netcdf(info):
         ################### critical energy balance components ###################
 
         var = 'SWnet'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Net shortwave radiation (downward)'
         o.variables[var].standard_name = 'surface_net_downward_shortwave_flux'
         o.variables[var].units         = 'W/m2'
 
         var = 'LWnet'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Net longwave radiation (downward)'
         o.variables[var].standard_name = 'surface_net_downward_longwave_flux'
         o.variables[var].units         = 'W/m2'
 
         var = 'Qle'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Latent heat flux (upward)'
         o.variables[var].standard_name = 'surface_upward_latent_heat_flux'
         o.variables[var].units         = 'W/m2'
 
         var = 'Qh'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Sensible heat flux (upward)'
         o.variables[var].standard_name = 'surface_upward_sensible_heat_flux'
         o.variables[var].units         = 'W/m2'
 
         var = 'Qanth'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Anthropogenic heat flux (upward)'
         o.variables[var].standard_name = 'surface_upward_heat_flux_due_to_anthropogenic_energy_consumption'
         o.variables[var].units         = 'W/m2'
 
         var = 'Qstor'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Net storage heat flux in all materials (increase)'
         o.variables[var].standard_name = 'surface_thermal_storage_heat_flux'
         o.variables[var].units         = 'W/m2'
@@ -472,25 +492,25 @@ def create_empty_netcdf(info):
         ################### additional energy balance compoenents #################
 
         var = 'Qg'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Ground heat flux (downward)'
         o.variables[var].standard_name = 'downward_heat_flux_at_ground_level_in_soil'
         o.variables[var].units         = 'W/m2'
 
         var = 'Qanth_Qh'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Anthropogenic sensible heat flux (upward)'
         o.variables[var].standard_name = 'surface_upward_sensible_heat_flux_due_to_anthropogenic_energy_consumption'
         o.variables[var].units         = 'W/m2'
 
         var = 'Qanth_Qle'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Anthropogenic latent heat flux (upward)'
         o.variables[var].standard_name = 'surface_upward_latent_heat_flux_due_to_anthropogenic_energy_consumption'
         o.variables[var].units         = 'W/m2'
 
         var = 'Qtau'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Momentum flux (downward)'
         o.variables[var].standard_name = 'magnitude_of_surface_downward_stress'
         o.variables[var].units         = 'N/m2'
@@ -498,67 +518,67 @@ def create_empty_netcdf(info):
         ##################### general water balance components #####################
 
         var = 'Snowf'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Snowfall rate (downward)'
         o.variables[var].standard_name = 'snowfall_flux'
         o.variables[var].units         = 'kg/m2/s'
 
         var = 'Rainf'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Rainfall rate (downward)'
         o.variables[var].standard_name = 'rainfall_flux'
         o.variables[var].units         = 'kg/m2/s'
 
         var = 'Evap'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Total evapotranspiration (upward)'
         o.variables[var].standard_name = 'surface_evapotranspiration'
         o.variables[var].units         = 'kg/m2/s'
 
         var = 'Qs'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Surface runoff (out of gridcell)'
         o.variables[var].standard_name = 'surface_runoff_flux'
         o.variables[var].units         = 'kg/m2/s'
 
         var = 'Qsb'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Subsurface runoff (out of gridcell)'
         o.variables[var].standard_name = 'subsurface_runoff_flux'
         o.variables[var].units         = 'kg/m2/s'
 
         var = 'Qsm'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Snowmelt (solid to liquid)'
         o.variables[var].standard_name = 'surface_snow_and_ice_melt_flux'
         o.variables[var].units         = 'kg/m2/s'
 
         var = 'Qfz'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Re-freezing of water in the snow (liquid to solid)'
         o.variables[var].standard_name = 'surface_snow_and_ice_refreezing_flux'
         o.variables[var].units         = 'kg/m2/s'
 
         var = 'DelSoilMoist'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Change in soil moisture (increase)'
         o.variables[var].standard_name = 'change_over_time_in_mass_content_of_water_in_soil'
         o.variables[var].units         = 'kg/m2'
 
         var = 'DelSWE'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Change in snow water equivalent (increase)'
         o.variables[var].standard_name = 'change_over_time_in_surface_snow_and_ice_amount'
         o.variables[var].units         = 'kg/m2'
 
         var = 'DelIntercept'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Change in interception storage (increase)'
         o.variables[var].standard_name = 'change_over_time_in_canopy_water_amount'
         o.variables[var].units         = 'kg/m2'
 
         var = 'Qirrig'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Anthropogenic water flux from irrigation (increase)'
         o.variables[var].standard_name = 'surface_downward_mass_flux_of_water_due_to_irrigation'
         o.variables[var].units         = 'kg/m2/s'
@@ -566,126 +586,126 @@ def create_empty_netcdf(info):
         ########################## surface state variables ########################
 
         var = 'SnowT'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Snow surface temperature'
         o.variables[var].standard_name = 'surface_snow_skin_temperature'
         o.variables[var].units         = 'K'
         o.variables[var].subgrid       = 'snow'
 
         var = 'VegT'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Vegetation canopy temperature'
         o.variables[var].standard_name = 'surface_canopy_skin_temperature'
         o.variables[var].units         = 'K'
         o.variables[var].subgrid       = 'vegetation'
 
         var = 'BaresoilT'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Temperature of bare soil'
         o.variables[var].standard_name = 'surface_ground_skin_temperature'
         o.variables[var].units         = 'K'
         o.variables[var].subgrid       = 'baresoil'
 
         var = 'AvgSurfT'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Average surface temperature (skin)'
         o.variables[var].standard_name = 'surface_temperature'
         o.variables[var].units         = 'K'
 
         var = 'RadT'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Surface radiative temperature'
         o.variables[var].standard_name = 'surface_radiative_temperature'
         o.variables[var].units         = 'K'
 
         var = 'Albedo'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Surface albedo'
         o.variables[var].standard_name = 'surface_albedo'
         o.variables[var].units         = '1'
 
         var = 'SWE'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Snow water equivalent'
         o.variables[var].standard_name = 'surface_snow_amount'
         o.variables[var].units         = 'kg/m2'
 
         var = 'SurfStor'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Surface water storage'
         o.variables[var].standard_name = 'surface_water_amount_assuming_no_snow'
         o.variables[var].units         = 'kg/m2'
 
         var = 'SnowFrac'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Snow covered fraction'
         o.variables[var].standard_name = 'surface_snow_area_fraction'
         o.variables[var].units         = '1'
 
         var = 'SAlbedo'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Snow albedo'
         o.variables[var].standard_name = 'snow_and_ice_albedo'
         o.variables[var].units         = '1'
         o.variables[var].subgrid       = 'snow'
 
         var = 'CAlbedo'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Vegetation canopy albedo'
         o.variables[var].standard_name = 'canopy_albedo'
         o.variables[var].units         = '1'
         o.variables[var].subgrid       = 'vegetation'
 
         var = 'UAlbedo'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Urban canopy albedo'
         o.variables[var].standard_name = 'urban_albedo'
         o.variables[var].units         = '1'
         o.variables[var].subgrid       = 'urban'
 
         var = 'LAI'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Leaf area index'
         o.variables[var].standard_name = 'leaf_area_index'
         o.variables[var].units         = '1'
         o.variables[var].subgrid       = 'vegetation'
 
         var = 'RoofSurfT'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Roof surface temperature (skin)'
         o.variables[var].standard_name = 'surface_roof_skin_temperature'
         o.variables[var].units         = 'K'
         o.variables[var].subgrid       = 'roof'
 
         var = 'WallSurfT'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Wall surface temperature (skin)'
         o.variables[var].standard_name = 'surface_wall_skin_temperature'
         o.variables[var].units         = 'K'
         o.variables[var].subgrid       = 'wall'
 
         var = 'RoadSurfT'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Road surface temperature (skin)'
         o.variables[var].standard_name = 'surface_road_skin_temperature'
         o.variables[var].units         = 'K'
         o.variables[var].subgrid       = 'road'
 
         var = 'TairSurf'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Near surface air temperature (2m)'
         o.variables[var].standard_name = 'air_temperature_near_surface'
         o.variables[var].units         = 'K'
 
         var = 'TairCanyon'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Air temperature in street canyon (bulk)'
         o.variables[var].standard_name = 'air_temperature_in_street_canyon'
         o.variables[var].units         = 'K'
         o.variables[var].subgrid       = 'canyon'
 
         var = 'TairBuilding'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Air temperature in buildings (bulk)'
         o.variables[var].standard_name = 'air_temperature_in_buildings'
         o.variables[var].units         = 'K'
@@ -694,13 +714,13 @@ def create_empty_netcdf(info):
         ######################## Sub-surface state variables ######################
 
         var = 'SoilMoist'
-        o.createVariable(var, datatype='f8', dimensions=('time','soil_layer','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','soil_layer','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Average layer soil moisture'
         o.variables[var].standard_name = 'moisture_content_of_soil_layer'
         o.variables[var].units         = 'kg/m2'
 
         var = 'SoilTemp'
-        o.createVariable(var, datatype='f8', dimensions=('time','soil_layer','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','soil_layer','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Average layer soil temperature'
         o.variables[var].standard_name = 'soil_temperature'
         o.variables[var].units         = 'K'
@@ -708,33 +728,33 @@ def create_empty_netcdf(info):
         ########################## Evaporation components #########################
 
         var = 'TVeg'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Vegetation transpiration'
         o.variables[var].standard_name = 'transpiration_flux'
         o.variables[var].units         = 'kg/m2/s'
         o.variables[var].subgrid       = 'vegetation'
 
         var = 'ESoil'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Bare soil evaporation'
         o.variables[var].standard_name = 'liquid_water_evaporation_flux_from_soil'
         o.variables[var].units         = 'kg/m2/s'
         o.variables[var].subgrid       = 'baresoil'
 
         var = 'RootMoist'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Root zone soil moisture'
         o.variables[var].standard_name = 'mass_content_of_water_in_soil_defined_by_root_depth'
         o.variables[var].units         = 'kg/m2'
 
         var = 'SoilWet'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Total soil wetness'
         o.variables[var].standard_name = 'relative_soil_moisture_content_above_wilting_point'
         o.variables[var].units         = '1'
 
         var = 'ACond'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Aerodynamic conductance'
         o.variables[var].standard_name = 'inverse_aerodynamic_resistance'
         o.variables[var].units         = 'm/s'
@@ -742,37 +762,37 @@ def create_empty_netcdf(info):
         ########################## forcing data variables #########################
 
         var = 'SWdown'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Downward shortwave radiation at measurement height'
         o.variables[var].standard_name = 'surface_downwelling_shortwave_flux_in_air'
         o.variables[var].units         = 'W/m2'
 
         var = 'LWdown'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Downward longwave radiation at measurement height'
         o.variables[var].standard_name = 'surface_downwelling_longwave_flux_in_air'
         o.variables[var].units         = 'W/m2'
 
         var = 'Tair'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Air temperature at measurement height'
         o.variables[var].standard_name = 'air_temperature'
         o.variables[var].units         = 'K'
 
         var = 'Qair'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Specific humidity at measurement height'
         o.variables[var].standard_name = 'surface_specific_humidity'
         o.variables[var].units         = '1'
 
         var = 'PSurf'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Air pressure at measurement height'
         o.variables[var].standard_name = 'surface_air_pressure'
         o.variables[var].units         = 'Pa'
 
         var = 'Wind'
-        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float)
+        o.createVariable(var, datatype='f8', dimensions=('time','y','x'), fill_value = missing_float, zlib=True)
         o.variables[var].long_name     = 'Wind speed at measurement height'
         o.variables[var].standard_name = 'wind_speed'
         o.variables[var].units         = 'm/s'

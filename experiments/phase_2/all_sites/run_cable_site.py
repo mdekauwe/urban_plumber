@@ -20,6 +20,7 @@ import shutil
 import subprocess
 import multiprocessing as mp
 import numpy as np
+import pandas as pd
 
 from cable_utils import adjust_nml_file
 from cable_utils import get_svn_info
@@ -107,6 +108,10 @@ class RunCable(object):
         for fname in met_files:
             site = os.path.basename(fname).split("_")[0]
 
+            (height, elevation, tree_frac,
+             grass_frac, bare_frac,
+             water_frac) = self.get_site_info(site)
+
             base_nml_fn = os.path.join(self.grid_dir, "%s" % (self.nml_fname))
 
             nml_fname = "cable_%s.nml" % (site)
@@ -119,9 +124,17 @@ class RunCable(object):
                 fname = change_LAI(fname, site, fixed=self.fixed_lai,
                                    lai_dir=self.lai_dir)
 
+            print(site, height, elevation, tree_frac,
+                                  grass_frac, bare_frac, water_frac)
 
             # Set tree, grass and bare fracs, measurement height etc
-            fname = set_site_info(fname, site)
+            fname = set_site_info(fname, site, height, elevation, tree_frac,
+                                  grass_frac, bare_frac, water_frac)
+
+            if site == "NL-Amsterdam": #"GR-HECKOR": # soil temp nuts
+                spinup_flag = ".FALSE."
+            else:
+                spinup_flag = ".TRUE."
 
             replace_dict = {
                             "filename%met": "'%s'" % (fname),
@@ -141,14 +154,14 @@ class RunCable(object):
                             "cable_user%GS_SWITCH": "'medlyn'",
                             "cable_user%GW_MODEL": ".FALSE.",
                             "cable_user%or_evap": ".FALSE.",
-                            "spinup": ".FALSE.",
+                            "spinup": "%s" % (spinup_flag),
                             "verbose": ".FALSE.",
             }
             adjust_nml_file(nml_fname, replace_dict)
 
             self.run_me(nml_fname)
 
-            add_attributes_to_output_file(nml_fname, out_fname, url, rev)
+            #add_attributes_to_output_file(nml_fname, out_fname, url, rev)
             shutil.move(nml_fname, os.path.join(self.namelist_dir, nml_fname))
 
             if self.fixed_lai is not None or self.lai_dir is not None:
@@ -181,7 +194,6 @@ class RunCable(object):
         local_exe = "cable"
         if os.path.isfile(local_exe):
             os.remove(local_exe)
-        print(self.cable_exe)
         shutil.copy(self.cable_exe, local_exe)
         self.cable_exe = local_exe
 
@@ -213,6 +225,33 @@ class RunCable(object):
             if error == 1:
                 print("Job failed to submit")
 
+    def get_site_info(self, site):
+        # Look up site info to customise run
+        site_fname = glob.glob('site_info/%s_*.csv' % site)[0]
+        df_site = pd.read_csv(site_fname)
+
+        height = df_site.loc[df_site['parameter'] == \
+                            "measurement_height_above_ground"].value.values[0]
+
+        elevation = df_site.loc[df_site['parameter'] == \
+                            "ground_height"].value.values[0]
+
+        tree_frac = df_site.loc[df_site['parameter'] == \
+                            "tree_area_fraction"].value.values[0]
+
+        grass_frac = df_site.loc[df_site['parameter'] == \
+                            "grass_area_fraction"].value.values[0]
+
+        bare_frac = df_site.loc[df_site['parameter'] == \
+                            "bare_soil_area_fraction"].value.values[0]
+
+        water_frac = df_site.loc[df_site['parameter'] == \
+                            "water_area_fraction"].value.values[0]
+
+
+        return (height, elevation, tree_frac, grass_frac, bare_frac, water_frac)
+
+
 if __name__ == "__main__":
 
     #------------- Change stuff ------------- #
@@ -223,11 +262,11 @@ if __name__ == "__main__":
     namelist_dir = "namelists"
     aux_dir = "../../../src/trunk_plumber/CABLE-AUX/"
     #cable_src = "../../../src/trunk_plumber/trunk_plumber"
-    cable_src = "../../../src/trunk_plumber_albedo_hack/trunk_urban_plumber/"
+    cable_src = "../../../src/trunk_plumber/trunk_urban_plumber/"
     mpi = False
     num_cores = 1 # set to a number, if None it will use all cores...!
     # if empty...run all the files in the met_dir
-    met_subset = ['AU-Preston_metforcing_v1.nc']
+    met_subset = []
     #------------------ ----------------------#
 
     C = RunCable(met_dir=met_dir, log_dir=log_dir, output_dir=output_dir,

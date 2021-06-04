@@ -179,8 +179,8 @@ def get_model_data(info):
     df['SWdown'] = f.variables['SWdown'][:,0,0]
     df['LWdown'] = f.variables['LWdown'][:,0,0]
     df['Tair'] = f.variables['Tair'][:,0,0]
-    df['Qair'] = f.variables['Qair'][:,0,0]
-    df['PSurf'] = f.variables['PSurf'][:,0,0] * hpa_2_pa
+    df['Qair'] = f.variables['Qair'][:,0,0] * hpa_2_pa
+    df['PSurf'] = f.variables['PSurf'][:,0,0]
     df['Wind'] = f.variables['Wind'][:,0,0]
 
     #df['dates'] = time
