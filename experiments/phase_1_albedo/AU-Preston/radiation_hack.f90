@@ -346,13 +346,9 @@ CONTAINS
     flwv(:) = 0.0
     flpwb(:) = 0.0
 
-    DO b = 1,2
-      WHERE (mask)
-         !fraction of %fsd in each term - note need to place a condition on %fsd)
-         dummy = rad%qcan(:,1,b)/MAX(met%fsd(:,b),C%RAD_THRESH)
-         dummy2 = rad%qcan(:,2,b)/MAX(met%fsd(:,b),C%RAD_THRESH)
-
-         !note need to evaluate both parts of %qssabs separate in both loops
+    !ok - mixed WHERE's and IF's don't work - recode accordingly
+    WHERE (mask)
+         !fraction of %fsd(:,1) and fsd(:,2) absorbed by the soil
          flwv = rad%fbeam(:,1) * ( 1. - rad%reffbm(:,1) ) *                       &
                       EXP( -min(rad%extkbm(:,1) * canopy%vlaiw,20.) ) +           &
                       ( 1. - rad%fbeam(:,1) ) * ( 1. - rad%reffdf(:,1) ) *        &
@@ -361,44 +357,36 @@ CONTAINS
                       * rad%cexpkbm(:,2) + ( 1. - rad%fbeam(:,2) ) *              &
                       ( 1. - rad%reffdf(:,2) ) * rad%cexpkdm(:,2)
 
+         !calculate fraction of %fsd absorbed by canopy - then rescale %qcan
+         
+         !VIS component first
+         b=1
+         !fraction of %fsd in each term - note need to place a condition on %fsd
+         dummy = rad%qcan(:,1,b)/MAX(met%fsd(:,b),C%RAD_THRESH)
+         dummy2 = rad%qcan(:,2,b)/MAX(met%fsd(:,b),C%RAD_THRESH)
          !rescale the partitioned vegetated net shortwave
-         !IF (b==1) THEN
-         !   rad%qcan(:,1,b) = (1.0-ssnow%albsoilsn(:,b)) * met%fsd(:,b) *         &
-         !                     dummy/(dummy+dummy2+flwv)
-         !   rad%qcan(:,2,b) = (1.0-ssnow%albsoilsn(:,b)) * met%fsd(:,b) *         &
-         !                     dummy2/(dummy+dummy2+flwv)
-         !ELSE !b==2
-         !   rad%qcan(:,1,b) = (1.0-ssnow%albsoilsn(:,b)) * met%fsd(:,b) *         &
-         !                     dummy/(dummy+dummy2+flpwb)
-         !   rad%qcan(:,2,b) = (1.0-ssnow%albsoilsn(:,b)) * met%fsd(:,b) *         &
-         !                     dummy2/(dummy+dummy2+flpwb)
-         !END IF
-
-      END WHERE
-
-      ! It didn't like this in the where block, OK here Ian?
-      ! ??
-      !rescale the partitioned vegetated net shortwave
-      IF (b==1) THEN
          rad%qcan(:,1,b) = (1.0-ssnow%albsoilsn(:,b)) * met%fsd(:,b) *         &
                            dummy/(dummy+dummy2+flwv)
          rad%qcan(:,2,b) = (1.0-ssnow%albsoilsn(:,b)) * met%fsd(:,b) *         &
                            dummy2/(dummy+dummy2+flwv)
-      ELSE !b==2
+        
+         !rescaled VIS radiation absorbed by soil
+         rad%qssabs = (1.0-ssnow%albsoilsn(:,b)) * met%fsd(:,b) *              &
+                           flwv/(dummy+dummy2+flwv) 
+          
+         !then NIR - repeat code but with flpwb in place of flwv
+         b=2
+         dummy = rad%qcan(:,1,b)/MAX(met%fsd(:,b),C%RAD_THRESH)
+         dummy2 = rad%qcan(:,2,b)/MAX(met%fsd(:,b),C%RAD_THRESH)
          rad%qcan(:,1,b) = (1.0-ssnow%albsoilsn(:,b)) * met%fsd(:,b) *         &
                            dummy/(dummy+dummy2+flpwb)
          rad%qcan(:,2,b) = (1.0-ssnow%albsoilsn(:,b)) * met%fsd(:,b) *         &
                            dummy2/(dummy+dummy2+flpwb)
-      END IF
-
-   END DO
-
-   !MDK added a plus between rad%qssabs terms...? OK Ian?
-   WHERE (mask)
-      rad%qssabs = (1.0-ssnow%albsoilsn(:,1)) * met%fsd(:,1) *                 &
-                           flwv/(dummy+dummy2+flwv) + &
-                   (1.0-ssnow%albsoilsn(:,2)) * met%fsd(:,2) *                 &
-                           flpwb/(dummy+dummy2+flpwb)
+                           
+         !NIR radiation absorbed by soil - note switch from flwv to flpwb
+         rad%qssabs = rad%qssabs + (1.0-ssnow%albsoilsn(:,b)) * met%fsd(:,b) * &
+                           flpwb/(dummy+dummy2+flpwb) 
+         
     END WHERE
 
     ! MDK - Ian's suggested hack to focrce albedo to 0.15 for Mat Lipson's
