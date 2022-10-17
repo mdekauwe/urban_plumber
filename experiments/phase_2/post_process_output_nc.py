@@ -171,12 +171,13 @@ def get_model_data(info):
     df['ESoil'] = f.variables['ESoil'][:,0,0]
 
     zse = [.022, .058, .154, .409, 1.085, 2.872]
-    frac1 = zse[0] / (zse[0] + zse[1])
-    frac2 = zse[1] / (zse[0] + zse[1])
-    frac3 = zse[2] / (zse[2] + zse[3])
-    frac4 = zse[3] / (zse[2] + zse[3])
-    frac5 = zse[4] / (zse[4] + zse[4])
-    frac6 = zse[5] / (zse[5] + zse[5])
+    frac1 = zse[0] / np.sum(zse)
+    frac2 = zse[1] / np.sum(zse)
+    frac3 = zse[2] / np.sum(zse)
+    frac4 = zse[3] / np.sum(zse)
+    frac5 = zse[4] / np.sum(zse)
+    frac6 = zse[5] / np.sum(zse)
+
     df['RootMoist'] = (f.variables['SoilMoist'][:,0,0,0] * frac1) +  \
                       (f.variables['SoilMoist'][:,1,0,0] * frac2) + \
                       (f.variables['SoilMoist'][:,2,0,0] * frac3) + \
